@@ -1,65 +1,29 @@
 const Tour = require('./../models/tourModel');
+const APIFeatures = require('../utils/apiFeatures');
 
-//Getting the data
+//Creating a middleware to modify the query object, so when it reaces the 'getAllTours' its different.
+exports.aliasTopTours = (req, res, next) => {
+  //We are manually setting this params into the query so we retrieve the top 5 best and cheapest documents
+  req.query.limit = '5';
+  req.query.sort = '-ratingsAverage,price';
+  req.query.fields = 'name,price,ratingsAverage,summary,difficulty';
+
+  next();
+};
 
 exports.getAllTours = async (req, res) => {
   //Retrieve all the documents from collection
   try {
     //1) WE build the query
-
-    //FILTERING//
-
-    //This prevents the API seeing the page or this values as fields in the document
-    //So we exclude them from the query, and use them separatly to handle pagination, sorting, etc
-    //Its a way of ignoring them and not try to search for those values in the data
-    const queryObj = { ...req.query };
-    const excludedFields = ['page', 'sort', 'limit', 'fields'];
-    excludedFields.forEach((el) => delete queryObj[el]);
-
-    //ADV FILTERING//
-
-    //From this: {difficulty: 'easy', duration: {$gte: 5}} to: { difficulty: 'easy', duration: { '$gte': '6' } }
-    //When we want to filter with gte, lte, gt or lt we need to have the $ infront but in the req.query it comes without it
-    //So where we replace those words and add the proper format
-    let queryStr = JSON.stringify(queryObj);
-    //We hard code it with regex, because those are the only cases we needed it
-    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`); //replace accepts a callback function and as a parameter the replaced word, so we can use it
-
-    let query = Tour.find(JSON.parse(queryStr)); //We pass the object with the filters we want
-
-    //SORTING//
-    if (req.query.sort) {
-      const sortBy = req.query.sort.replaceAll(',', ' '); //We do this in order to chain sorts, we can pass to the url endpoint multiple fields to sort by, and it will sort in the order we pass them
-      //if in the query we have sort=[field] it sorts it in ascending order but if we have sort=-[field] it will be descending order
-      query = query.sort(sortBy);
-    } else {
-      //Default sort
-      query = query.sort('-createdAt _id');
-    }
-
-    //FIELD LIMITING// Only retrieve the field we want
-    if (req.query.fields) {
-      const fields = req.query.fields.replaceAll(',', ' ');
-      query = query.select(fields);
-    } else {
-      //We are not returning the __v field becase it something that mongoose uses internally and we dont want to send it to the user
-      query = query.select('-__v'); //the - excludes that field
-    }
-
-    //PAGINATION//
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const skip = (page - 1) * limit; //After how many documents we want to read (if we have a skip of 10, it will skip the first 10 results and start retrieving from the 11th)
-
-    query = query.skip(skip).limit(limit);
-
-    if (req.query.page) {
-      const numTours = await Tour.countDocuments();
-      if (skip >= numTours) throw new Error('This page does not exist');
-    }
+    const features = new APIFeatures(Tour.find(), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .paginate();
+    //The chaning works because we are returning the 'this'
 
     //2) Execute the query
-    const tours = await query;
+    const tours = await features.query;
 
     //3) Send response
     res.status(200).json({
@@ -130,6 +94,114 @@ exports.deleteTour = async (req, res) => {
     res.status(204).json({
       status: 'success',
       data: null,
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err,
+    });
+  }
+};
+
+//TOUR STATISTICS
+//Aggregation pipeline -> we can manipulate data in the steps
+exports.getTourStats = async (req, res) => {
+  try {
+    const stats = await Tour.aggregate([
+      //Stages
+      //-Match -> Select certain documents that match this
+      {
+        $match: { ratingsAverage: { $gte: 4.5 } },
+      },
+      //-Group
+      {
+        $group: {
+          _id: '$difficulty', //We can select which field we want, and it will return all the stats for that group
+          //Example with $difficulty -> it returns the stats for the difficult, the medium and the easy tours
+          numTours: { $sum: 1 }, //This adds 1 for each document we have in out db
+          numRatings: { $sum: '$ratingsQuantity' },
+          avgRating: { $avg: '$ratingsAverage' },
+          avgPrice: { $avg: '$price' },
+          minPrice: { $min: '$price' },
+          maxPrice: { $max: '$price' },
+        },
+      },
+      {
+        $sort: {
+          //Which field we want to sort by
+          avgPrice: 1, //1 for ascending
+        },
+      },
+      // {
+      //   //We can repeat stages in the pipeline
+      //   $match: {
+      //     _id: { $ne: 'easy' }, //We retrieve the ones that are Not Equal to the value we pass
+      //   },
+      // },
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        stats,
+      },
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err,
+    });
+  }
+};
+
+exports.getMonthlyPlan = async (req, res) => {
+  try {
+    const year = Number(req.params.year);
+    const plan = await Tour.aggregate([
+      //STAGES
+      {
+        //Deconstructs an array and build a document for each element of that array
+        //We want to have one tour for each of the dates in the tours dates
+        $unwind: '$startDates',
+      },
+      {
+        $match: {
+          startDates: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$startDates' },
+          numTourStarts: { $sum: 1 },
+          tours: { $push: '$name' }, //We create an array with the names of the tours
+        },
+      },
+      {
+        $addFields: { month: '$_id' }, //Adds a new field
+      },
+      {
+        //We give the fields either a 0 or a 1
+        $project: {
+          _id: 0, //The ID will not show up
+        },
+      },
+      {
+        $sort: { month: 1 },
+      },
+      {
+        //Limit stage -> works the same as in the regular queries
+        $limit: 12, //Retrieve all 12 months (as an example)
+      },
+    ]);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        plan,
+      },
     });
   } catch (err) {
     res.status(400).json({
