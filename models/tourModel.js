@@ -1,11 +1,6 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
-
-mongoose
-  .connect(process.env.DATABASE_ALT, {
-    useNewUrlParser: true,
-  })
-  .then(() => console.log('DB connection succesful!'));
+// const validator = require('validator');
 
 //Creating the schema
 const tourSchema = new mongoose.Schema(
@@ -15,6 +10,14 @@ const tourSchema = new mongoose.Schema(
       require: [true, 'A tour must have a name'], //Validator
       unique: true, //We cant create two tours with the same name
       trim: true,
+      //String validators (we need to set the runValidators in the update so it also runs there and not only in the creation)
+      maxlength: [40, 'The tour name must have less than 40 characters'],
+      minlength: [10, 'The tour name must have at least 10 characters'],
+      //Custom validator (using a library) => Checks that the name is just A-Z without numbers
+      // validate: {
+      //   validator: validator.isAlpha,
+      //   message: 'Tour names can contain numbers',
+      // },
     },
     duration: {
       type: Number,
@@ -27,10 +30,18 @@ const tourSchema = new mongoose.Schema(
     difficulty: {
       type: String,
       require: [true, 'A tour must have a difficulty'],
+      //'Options validator' (the ones inside the array are the posible values) JUST FOR STRINGS
+      enum: {
+        values: ['easy', 'medium', 'difficult'],
+        message: 'Difficulty must be either easy, medium or difficult',
+      },
     },
     ratingsAverage: {
       type: Number,
       default: 4.5,
+      //Number validator
+      min: [1, 'Rating must be above 1.0'],
+      max: [5, 'Rating must be below 5.0'],
     },
     ratingsQuantity: {
       type: Number,
@@ -40,7 +51,17 @@ const tourSchema = new mongoose.Schema(
       type: Number,
       require: [true, 'A tour must have a price'],
     },
-    priceDiscount: Number,
+    priceDiscount: {
+      type: Number,
+      //Custom validator (if you need the this keywords we use function else arrow f)
+      validate: {
+        validator: function (val) {
+          //The this only points to crr doc on NEW doc creation NO UPDATE
+          return val < this.price; //100 < 200 (The discount must be lower than the full price)
+        },
+        message: 'Discount price should be below the regular price',
+      },
+    },
     summary: {
       type: String,
       require: [true, 'There must be a summary'],
