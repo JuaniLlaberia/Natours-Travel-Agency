@@ -9,6 +9,11 @@ const sendErrorDev = (err, res) => {
   });
 };
 
+const handleJWTError = () => new AppError('Invalid token. Log in again.', 401);
+
+const handleJWTExpiredError = () =>
+  new AppError('Your token has expired. Log in again.', 401);
+
 const handleCastErrorDB = (error) => {
   const message = `Invalid ${error.path}: ${error.value}`;
   return new AppError(message, 400);
@@ -63,6 +68,8 @@ module.exports = (err, req, res, next) => {
     //This is to handle validation errors from mongoose schema and return a more friendly message to the user
     if (error._message === 'Validation failed')
       error = handleValidationErrorDB(error);
+    if (error.name === 'JsonWebTokenError') error = handleJWTError();
+    if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
 
     sendErrorProd(error, res);
   }

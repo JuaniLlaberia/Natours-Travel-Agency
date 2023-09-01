@@ -1,5 +1,6 @@
 const express = require('express');
 const tourController = require('../controllers/tourController');
+const authenticationController = require('../controllers/authenticationController');
 //Create a new router -> We are creating a 'sub-app' for each resource
 //Creating Router
 const router = express.Router();
@@ -21,7 +22,7 @@ router.route(`/tour-stats`).get(tourController.getTourStats);
 router.route(`/monthly-plan/:year`).get(tourController.getMonthlyPlan);
 router
   .route(`/`)
-  .get(tourController.getAllTours)
+  .get(authenticationController.protect, tourController.getAllTours)
   .post(tourController.createTour); //We can add multiple middleware just by putting them between comas
 router
   .route(`/:id`)

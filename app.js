@@ -27,6 +27,9 @@ app.use(express.static(`${__dirname}/public`));
 //custom middleware -> If we dont set the route, they apply for every single route/request (if its before the route)
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
+
+  //HTTP HEADERS
+  // console.log(req.headers);
   next();
 });
 
