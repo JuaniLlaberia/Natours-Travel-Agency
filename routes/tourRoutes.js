@@ -1,5 +1,5 @@
 const express = require('express');
-const tourController = require('./../controllers/tourController');
+const tourController = require('../controllers/tourController');
 //Create a new router -> We are creating a 'sub-app' for each resource
 //Creating Router
 const router = express.Router();

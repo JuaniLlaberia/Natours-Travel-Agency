@@ -111,7 +111,7 @@ tourSchema.pre('save', function (next) {
 });
 
 //Post Document Middleware -> happends after its save
-tourSchema.post('save', function (doc, next) {
+tourSchema.post('save', (doc, next) => {
   //We have access to the saved doc (finished document)
   console.log(doc);
 
