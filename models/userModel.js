@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const validator = require('validator');
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -18,6 +19,11 @@ const userSchema = new mongoose.Schema({
     //Validate email format
     validate: [validator.isEmail, 'Pleaser enter a valid email address'],
   },
+  role: {
+    type: String,
+    enum: ['user', 'guide', 'lead-guide', 'admin'],
+    default: 'user',
+  },
   photo: String,
   password: {
     type: String,
@@ -37,6 +43,13 @@ const userSchema = new mongoose.Schema({
     },
   },
   passwordChangedAt: Date,
+  passwordResetToken: String,
+  passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false,
+  },
 });
 
 //Mongoose middleware (To encrypt passwords)
@@ -48,6 +61,22 @@ userSchema.pre('save', async function (next) {
   this.password = await bcrypt.hash(this.password, 12); //first the password and the second it the intensity (bigger number takes more time to process but more secure hashing)
   //We delete it because we dont need it at the database
   this.passwordConfirm = undefined;
+
+  next();
+});
+
+userSchema.pre('save', function (next) {
+  //Build in methods to check if the password was modified and to cehck is its a new documents
+  if (!this.isModified('password') || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 1000; //We subtract 1sec in order to ensure that the token is created after the password has been changed
+  next();
+});
+
+//Query middleware to filter the users that are inavtive (not retrieve them)
+userSchema.pre(/^find/, function (next) {
+  //this points to the current query
+  this.find({ active: { $ne: false } });
 
   next();
 });
@@ -75,6 +104,22 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
 
   //False means not changed
   return false;
+};
+
+userSchema.methods.createPasswordResetToken = function () {
+  //Reset token => random string
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  //Encrypting the token and storing it in the user(We need it there to compare it when the new password arrives)
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  //We need to set an expiration time for security (in this case 10 minutes)
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken;
 };
 
 const User = mongoose.model('User', userSchema);

@@ -9,6 +9,7 @@ class APIFeatures {
     //This prevents the API seeing the page or this values as fields in the document
     //So we exclude them from the query, and use them separatly to handle pagination, sorting, etc
     //Its a way of ignoring them and not try to search for those values in the data
+    // console.log(this.queryString);
     const queryObj = { ...this.queryString };
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
