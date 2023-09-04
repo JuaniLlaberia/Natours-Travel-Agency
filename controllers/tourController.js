@@ -38,6 +38,7 @@ exports.getAllTours = catchAsync(async (req, res) => {
 
 exports.getTour = catchAsync(async (req, res, next) => {
   //Retrieve specific document
+
   const tour = await Tour.findById(req.params.id); // findById === findOne({_id: req.params.id})
 
   if (!tour) {

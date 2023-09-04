@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const slugify = require('slugify');
+// const User = require('./userModel');
 // const validator = require('validator');
 
 //Creating the schema
@@ -87,6 +88,34 @@ const tourSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    //EMBEDDED OBJECT
+    startLocation: {
+      //GeoJSON (Geo information (lat, lng))
+      type: {
+        type: String,
+        default: 'Point',
+        enum: ['Point'],
+      },
+      coordinates: [Number], //[lng, lat]
+      address: String,
+      description: String,
+    },
+    locations: [
+      {
+        type: {
+          type: String,
+          default: 'Point',
+          enum: ['Point'],
+        },
+        coordinates: [Number],
+        address: String,
+        description: String,
+        day: Number,
+      },
+    ],
+    //Store the ids of the guides (We use the child reference, because if the guide changes its info or smth, it will update anywhere we query it
+    //Meanwhile if we use embeded, the data wont be updated everywhere, we would have to do it manually and its NOT efficient)
+    guides: [{ type: mongoose.Schema.ObjectId, ref: 'User' }], //We stablish references between collections
   },
   {
     toJSON: { virtuals: true }, //We mark it so that the virtual fields will appear
@@ -110,6 +139,20 @@ tourSchema.pre('save', function (next) {
   next(); //We call it in order not to stop the middleware and it goes to the next
 });
 
+//EXAMPLE: We are not going to use it in the final version -> We are going to use child reference
+//Middleware to transform guide id in the guide documents (we store them in an array inside the tour doc)
+
+// tourSchema.pre('save', async function (next) {
+//   //This will be an array full of promises
+//   const guidesPromises = this.guides.map(
+//     async (guideId) => await User.findById(guideId),
+//   );
+//   //We await all the promises here
+//   this.guides = await Promise.all(guidesPromises);
+
+//   next();
+// });
+
 //Post Document Middleware -> happends after its save
 tourSchema.post('save', (doc, next) => {
   //We have access to the saved doc (finished document)
@@ -125,6 +168,18 @@ tourSchema.pre(/^find/, function (next) {
 
   //this points to the query
   this.find({ secretTour: { $ne: true } }); //We will only return the tours that are not secret/private
+
+  next();
+});
+
+//Populate the data -> it can affect performance if we do it A LOT and with A LOT of data, because behind the scene we are querying that data
+tourSchema.pre(/^find/, function (next) {
+  //The populate will retrieve the data of the IDS stored in this case guides, so when we receive the data its like if it where embeded but in the database we are just storing the ref
+  //In populate we can specify the fields we want
+  this.populate({
+    path: 'guides',
+    select: '-__v -passwordChangedAt',
+  });
 
   next();
 });
