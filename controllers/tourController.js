@@ -39,10 +39,10 @@ exports.getAllTours = catchAsync(async (req, res) => {
 exports.getTour = catchAsync(async (req, res, next) => {
   //Retrieve specific document
 
-  const tour = await Tour.findById(req.params.id); // findById === findOne({_id: req.params.id})
+  const tour = await Tour.findById(req.params.id).populate('reviews'); // findById === findOne({_id: req.params.id})
 
   if (!tour) {
-    //It will run automatillca
+    //It will run automatically
     return next(new AppError('No tour found with that id', 404));
   }
 

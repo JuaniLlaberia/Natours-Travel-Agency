@@ -130,6 +130,14 @@ tourSchema.virtual('durationWeeks').get(function () {
   return this.duration / 7;
 });
 
+//VIRTUAL POPULATE
+//We are keeping a ref to all child documents (all reviews from this tour) without persisting that information into the database
+tourSchema.virtual('reviews', {
+  ref: 'Review', //The model we want to connect to
+  foreignField: 'tour', //The name of the field that stores the reference -> the tour field stores the ref to the tour id
+  localField: '_id', //This is how the id is call in this model
+});
+
 //Mongoose middleware -> Will run before an event (in this case before a document saves in the database)
 //Pre Document Middleware (it runs before .save() and bofre .create())
 tourSchema.pre('save', function (next) {

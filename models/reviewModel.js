@@ -41,10 +41,12 @@ reviewSchema.pre(/^find/, function (next) {
   this.populate({
     path: 'user',
     select: 'name photo',
-  }).populate({
-    path: 'tour',
-    select: 'name',
   });
+  //We dont want to populate tour now, because its repetitive
+  // .populate({
+  //   path: 'tour',
+  //   select: 'name',
+  // });
 
   next();
 });
