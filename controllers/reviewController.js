@@ -18,7 +18,12 @@ exports.createReview = catchAsync(async (req, res, next) => {
 });
 
 exports.getAllReviews = catchAsync(async (req, res, next) => {
-  const reviews = await Review.find();
+  //If we do the regular GET request to this route (using the regular route) it will return all the reviews
+  //But if we use the special nested route we created where we can specify a tour id, we will get all the reviews from that specific tour
+  let filter = {};
+  if (req.params.tourId) filter = { tour: req.params.tourId };
+
+  const reviews = await Review.find(filter);
 
   res.status(200).json({
     status: 'success',
