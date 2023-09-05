@@ -1,7 +1,6 @@
 const Tour = require('../models/tourModel');
-const APIFeatures = require('../utils/apiFeatures');
 const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
+const factory = require('./handlerFactory');
 
 //Creating a middleware to modify the query object, so when it reaces the 'getAllTours' its different.
 exports.aliasTopTours = (req, res, next) => {
@@ -13,87 +12,35 @@ exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
-exports.getAllTours = catchAsync(async (req, res) => {
-  //Retrieve all the documents from collection
-  //1) WE build the query
-  const features = new APIFeatures(Tour.find(), req.query)
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate();
-  //The chaning works because we are returning the 'this'
+//Get all tours
+exports.getAllTours = factory.getAll(Tour);
 
-  //2) Execute the query
-  const tours = await features.query;
+//Get specific tour
+exports.getTour = factory.getOne(Tour, { path: 'reviews' });
 
-  //3) Send response
-  res.status(200).json({
-    status: 'sucess',
-    results: tours.length,
-    data: {
-      tours,
-    },
-  });
-});
+//Create tours
+exports.createTour = factory.createOne(Tour);
 
-exports.getTour = catchAsync(async (req, res, next) => {
-  //Retrieve specific document
+//Updating tours
+exports.updateTour = factory.updateOne(Tour);
 
-  const tour = await Tour.findById(req.params.id).populate('reviews'); // findById === findOne({_id: req.params.id})
+//Using factory function
+exports.deleteTour = factory.deleteOne(Tour);
 
-  if (!tour) {
-    //It will run automatically
-    return next(new AppError('No tour found with that id', 404));
-  }
+//ORIGINAL BEFORE FACTORING
+// exports.deleteTour = catchAsync(async (req, res, next) => {
+//   const tour = await Tour.findByIdAndDelete(req.params.id);
 
-  res.status(200).json({
-    status: 'success',
-    data: {
-      tour,
-    },
-  });
-});
+//   if (!tour) {
+//     //It will run automatillca
+//     return next(new AppError('No tour found with that id', 400));
+//   }
 
-//Function to create tours
-//We wrapped our function in the catchAsync error handler
-exports.createTour = catchAsync(async (req, res, next) => {
-  //Create a new document
-  const newTour = await Tour.create(req.body);
-  res.status(201).json({ status: 'success', data: { tour: newTour } });
-});
-
-exports.updateTour = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
-    new: true, //Returns the updated doc
-    runValidators: true, //This makes the validators we set in the schema also work on the update
-  });
-
-  if (!tour) {
-    //It will run automatillca
-    return next(new AppError('No tour found with that id', 404));
-  }
-
-  res.status(200).json({
-    status: 'success',
-    data: {
-      tour,
-    },
-  });
-});
-
-exports.deleteTour = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findByIdAndDelete(req.params.id);
-
-  if (!tour) {
-    //It will run automatillca
-    return next(new AppError('No tour found with that id', 400));
-  }
-
-  res.status(204).json({
-    status: 'success',
-    data: null,
-  });
-});
+//   res.status(204).json({
+//     status: 'success',
+//     data: null,
+//   });
+// });
 
 //TOUR STATISTICS
 //Aggregation pipeline -> we can manipulate data in the steps

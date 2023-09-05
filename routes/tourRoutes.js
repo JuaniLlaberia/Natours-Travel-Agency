@@ -38,15 +38,29 @@ router
   .route(`/top-5-cheap`) //This route that makes getting the top 5 easier needs to be before the tours one, because it will find the other one first
   .get(tourController.aliasTopTours, tourController.getAllTours);
 router.route(`/tour-stats`).get(tourController.getTourStats);
-router.route(`/monthly-plan/:year`).get(tourController.getMonthlyPlan);
+router
+  .route(`/monthly-plan/:year`)
+  .get(
+    authenticationController.protect,
+    authenticationController.restrictTo('admin', 'lead-guide'),
+    tourController.getMonthlyPlan,
+  );
 router
   .route(`/`)
-  .get(authenticationController.protect, tourController.getAllTours)
-  .post(tourController.createTour); //We can add multiple middleware just by putting them between comas
+  .get(tourController.getAllTours)
+  .post(
+    authenticationController.protect,
+    authenticationController.restrictTo('admin', 'lead-guide'),
+    tourController.createTour,
+  ); //We can add multiple middleware just by putting them between comas
 router
   .route(`/:id`)
   .get(tourController.getTour)
-  .patch(tourController.updateTour)
+  .patch(
+    authenticationController.protect,
+    authenticationController.restrictTo('admin', 'lead-guide'),
+    tourController.updateTour,
+  )
   .delete(
     authenticationController.protect,
     authenticationController.restrictTo('admin', 'lead-guide'),
