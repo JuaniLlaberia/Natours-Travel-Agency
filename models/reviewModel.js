@@ -14,6 +14,10 @@ const reviewSchema = new mongoose.Schema(
       max: [5, 'The max rating is 5.0 points.'],
       min: [1, 'The min rating is 1.0 point.'],
     },
+    edited: {
+      type: Boolean,
+      default: false,
+    },
     createdAt: {
       type: Date,
       default: Date.now(),
