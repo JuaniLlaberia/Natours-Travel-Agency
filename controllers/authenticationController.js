@@ -6,6 +6,7 @@ const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const sendEmail = require('../utils/email');
+const Review = require('../models/reviewModel');
 
 //Creating the jwt for authentication
 //PAYLOAD - SECRET - TOKEN HEADER(automatically) - OPTIONS
@@ -40,6 +41,17 @@ const createSendToken = (user, statusCode, res) => {
   });
 };
 
+//Checking if the user trying to update the review is the one who created it or its an admin
+exports.checkIfUser = async (req, res, next) => {
+  const review = await Review.findById(req.params.id);
+  if (req.user.role !== 'admin' && review.user.id !== req.user.id)
+    return next(
+      new AppError('You are only allow to edit your own reviews', 403),
+    );
+  next();
+};
+
+//This is just for signing up users as it doesnt need auth
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
     name: req.body.name,
@@ -47,7 +59,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     password: req.body.password,
     passwordConfirm: req.body.passwordConfirm,
     passwordChangedAt: Date.now(),
-    role: req.body.role,
+    role: req.body.role === 'guide' ? 'guide' : 'user',
   });
 
   //Creating token
