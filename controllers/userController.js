@@ -1,6 +1,7 @@
 const User = require('../models/userModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
+const factory = require('./handlerFactory');
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
@@ -12,19 +13,13 @@ const filterObj = (obj, ...allowedFields) => {
 };
 
 //Users handlers
-exports.getAllUsers = catchAsync(async (req, res) => {
-  //Retrieve all the documents from collection
-  //1) Execute the query
-  const users = await User.find();
-  //2) Send response
-  res.status(200).json({
-    status: 'success',
-    results: users.length,
-    data: {
-      users,
-    },
-  });
-});
+
+exports.getMe = (req, res, next) => {
+  //We are setting the params id to the logged user id. So that the current logged in user
+  //can fetch its own information just with this route, without having to pass any id or data.
+  req.params.id = req.user.id;
+  next();
+};
 
 exports.updateMe = catchAsync(async (req, res, next) => {
   //1) Create an error if user tries to update password
@@ -63,30 +58,29 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
+//This is to create any type of user (as its only for admins to access) => They can create other admins or lead-guides
+//This is a quick way to avoid anyone being able to create admin or high rank roles and do malicious things
+exports.createUser = catchAsync(async (req, res) => {
+  const newUser = await User.create({
+    name: req.body.name,
+    email: req.body.email,
+    password: req.body.password,
+    passwordConfirm: req.body.passwordConfirm,
+    passwordChangedAt: Date.now(),
+    role: req.body.role,
   });
-};
 
-exports.createUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
+  res.status(200).json({
+    status: 'success',
+    message: 'Login to start using this new user',
+    data: {
+      newUser,
+    },
   });
-};
+});
 
-exports.updateUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
-  });
-};
-
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
-  });
-};
+//Factory functions
+exports.getAllUsers = factory.getAll(User);
+exports.getUser = factory.getOne(User);
+exports.updateUser = factory.updateOne(User); //Not for changing password
+exports.deleteUser = factory.deleteOne(User);
