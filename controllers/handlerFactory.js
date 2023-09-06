@@ -119,6 +119,7 @@ exports.getAll = (Model) =>
     //The chaning works because we are returning the 'this'
 
     //2) Execute the query
+    // const docs = await features.query.explain; SHOW STATISTICS OF THE QUERY
     const docs = await features.query;
 
     //3) Send response

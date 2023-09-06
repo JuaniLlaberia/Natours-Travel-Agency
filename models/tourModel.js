@@ -43,6 +43,8 @@ const tourSchema = new mongoose.Schema(
       //Number validator
       min: [1, 'Rating must be above 1.0'],
       max: [5, 'Rating must be below 5.0'],
+      //Will run everytime a value is set to this field
+      set: (val) => Math.round(val * 10) / 10, //Little trick to keep the decimals
     },
     ratingsQuantity: {
       type: Number,
@@ -123,6 +125,13 @@ const tourSchema = new mongoose.Schema(
   },
 );
 
+//Single Query Index
+// tourSchema.index({ price: 1 }); //1 is ascending 0 is descending
+
+tourSchema.index({ price: 1, ratingsAverage: -1 }); //1 is ascending -1 is descending
+tourSchema.index({ slug: 1 });
+tourSchema.index({ startLocation: '2dsphere' });
+
 //This is data that wont be store in the database but it will be generated everytime we get data from it(Its usually something that
 //its not super escencial to keep and waste storage. For example having days and weeks (we can convert from one to another here))
 tourSchema.virtual('durationWeeks').get(function () {
@@ -192,17 +201,18 @@ tourSchema.pre(/^find/, function (next) {
   next();
 });
 
+//Commented because we dont really need it (it ruins our geoNear aggreagtion)
 //AGGREGATION MIDDLEWARE
-//Before the aggregation is executed
-tourSchema.pre('aggregate', function (next) {
-  //This points to the aggregation object
-  //We are adding another stage to the aggregation to not match the tours with the scretTour ser to true (so it doesnt 'ruin' our stats)
-  this.pipeline().unshift({
-    $match: { secretTour: { $ne: true } },
-  });
+//Before the aggregation is executed => Will run before the aggregation
+// tourSchema.pre('aggregate', function (next) {
+//   //This points to the aggregation object
+//   //We are adding another stage to the aggregation to not match the tours with the scretTour ser to true (so it doesnt 'ruin' our stats)
+//   this.pipeline().unshift({
+//     $match: { secretTour: { $ne: true } },
+//   });
 
-  next();
-});
+//   next();
+// });
 
 //Creating the model
 const Tour = mongoose.model('Tour', tourSchema);

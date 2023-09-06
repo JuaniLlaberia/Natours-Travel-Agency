@@ -1,4 +1,5 @@
 const Tour = require('../models/tourModel');
+const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
 
@@ -132,6 +133,94 @@ exports.getMonthlyPlan = catchAsync(async (req, res, next) => {
     status: 'success',
     data: {
       plan,
+    },
+  });
+});
+
+//Getting tours with location and distance
+//We are expecting something like this: /tours-within/200/center/34,-156/unit/mi
+exports.getToursWithin = catchAsync(async (req, res, next) => {
+  const { distance, latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(','); //the coords come like this lat,lng
+
+  //The radius must be in radiants (distance / earth radius)
+  const radius = unit === 'mi' ? distance / 3963.2 : distance / 6378.1;
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longitude in the format lat,lng',
+        400,
+      ),
+    );
+  }
+
+  //Geospacial query
+  const tours = await Tour.find({
+    //First we need to add an Index to the field we are going to search for (in this case startLocation) => tourSchema.index({ startLocation: '2dsphere' });
+    //The startLocation is where the tour location is stored
+    //The geoWithin is an special operator that retrieves all the documents between a radius
+    //Then we specify the centerSphere (we want to set a center and then look the docs in x circular raidius)
+
+    //Other methods and more info in docs
+    startLocation: { $geoWithin: { $centerSphere: [[lng, lat], radius] } },
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: tours.length,
+    data: {
+      data: tours,
+    },
+  });
+});
+
+//Given a lat and lng this function will return the distance from that location to all tours starting point
+exports.getDistances = catchAsync(async (req, res, next) => {
+  const { latlng, unit } = req.params;
+  const [lat, lng] = latlng.split(','); //the coords come like this lat,lng
+
+  //Transform from m (meters) to MI(miles) or KM (kilomiters)
+  const multiplier = unit === 'mi' ? 0.000621371 : 0.001;
+
+  if (!lat || !lng) {
+    next(
+      new AppError(
+        'Please provide latitude and longitude in the format lat,lng',
+        400,
+      ),
+    );
+  }
+
+  //Agregation pipeline
+  const distances = await Tour.aggregate([
+    {
+      //Only geospacial aggregation stage (ALWAYS NEEDS TO BE THE FIRST ONE)
+      //At least one of our fields must contain a geospacial index to work (the same or similar to the one we set on startLocation)
+      $geoNear: {
+        //'starting point' => All distances will be calculated between this point and the startLocations
+        near: {
+          type: 'Point',
+          coordinates: [Number(lng), Number(lat)],
+        },
+        //Where the distance will be store
+        distanceField: 'distance',
+        distanceMultiplier: multiplier, //it will multiple the distance by this number, we can use it to transform the meters into other distance units
+      },
+    },
+    {
+      //Which fields we want to keep
+      $project: {
+        distance: 1,
+        name: 1,
+      },
+    },
+  ]);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      data: distances,
     },
   });
 });
