@@ -1,4 +1,5 @@
 //Modules
+const path = require('path');
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
@@ -6,17 +7,25 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const cookieParser = require('cookie-parser');
 
 const AppError = require('./utils/appError');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
+const viewRouter = require('./routes/viewRoute');
 const globalErrorHandler = require('./controllers/errorController');
 
 //APP CONFIGURATION (Server on separate file)
 const app = express();
 
+//Setting view engine
+app.set('view engine', 'pug'); // ==> Pug templates are call views
+app.set('views', path.join(__dirname, 'views'));
+
 //GLOBAL MIDDLEWARES
+//Serve statis files with Express (use the path in the url without the public) -> from a folder not a route
+app.use(express.static(path.join(__dirname, 'public')));
 
 //3rd party middleware (logs the requests in the console)
 if (process.env.NODE_ENV === 'development') {
@@ -27,6 +36,17 @@ if (process.env.NODE_ENV === 'development') {
 //Helmet produces the function automatically
 //Its necessary to set SECURITY HTTP Headers
 app.use(helmet());
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'", 'https:', 'http:', 'data:', 'ws:'],
+      baseUri: ["'self'"],
+      fontSrc: ["'self'", 'https:', 'http:', 'data:'],
+      scriptSrc: ["'self'", 'https:', 'http:', 'blob:'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https:', 'http:'],
+    },
+  }),
+);
 
 //Using express rate limit module to limit the amount of request from one IP (avoid certain attacks)
 const limiter = rateLimit({
@@ -46,6 +66,9 @@ app.use(
     limit: '10kb',
   }),
 ); //the app.use adds the middleware to the app
+
+//Parses data from cookies
+app.use(cookieParser());
 
 //DATA SANITIZATION (Agaist NoSQL query injection)
 //It returns a function that help us prevent the noSQL injections
@@ -76,20 +99,17 @@ app.use(
 //AVOID THIS: url?sort=x&sort=y -> it should be together and not in two separate (hackers could use this to their advantage)
 //But sometimes we do want to be able to hable duplicates (We use whitelist)
 
-//Serve statis files with Express (use the path in the url without the public) -> from a folder not a route
-app.use(express.static(`${__dirname}/public`));
-
 //custom middleware -> If we dont set the route, they apply for every single route/request (if its before the route)
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
 
   //HTTP HEADERS
-  // console.log(req.headers);
+  console.log(req.cookies);
   next();
 });
 
 //ROUTING & MOUNTING
-
+app.use('/', viewRouter);
 //Mounting the router
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
