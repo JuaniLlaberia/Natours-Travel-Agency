@@ -8,17 +8,17 @@ html
       link(rel='shortcut icon' type='image/png' href='/img/favicon.png')
       link(rel='stylesheet' href='https://fonts.googleapis.com/css?family=Lato:300,300i,700')
       title Natours | #{title}
-  
+
   body
     // HEADER
     include _header
-        
+
     // CONTENT
     block content
         h1 Loading...
-      
+
     // FOOTER
     include _footer
 
-    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.0/axios.min.js')
-    script(src='/js/login.js')
+    //- Bundled file containing all the js files
+    script(src='/js/bundled/index.js')
