@@ -129,12 +129,14 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   //If all the validation goes OK. We grant access to the protected route :D
   req.user = crrUser;
+  res.locals.user = crrUser; //Allow us to use it on the templates
   next();
 });
 
 //We need to create a wrapper function in order to access the parameters we pass in the middleware function
-exports.restrictTo = (...roles) => {
-  return (req, res, next) => {
+exports.restrictTo =
+  (...roles) =>
+  (req, res, next) => {
     //roles = Array
     //We have access to the user because we stored it in the request in previous middleware (protect)
     if (!roles.includes(req.user.role)) {
@@ -145,7 +147,6 @@ exports.restrictTo = (...roles) => {
 
     next();
   };
-};
 
 exports.forgotPassword = catchAsync(async (req, res, next) => {
   //1) Get user based on Posted email
@@ -240,3 +241,45 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   //4) Log user in, send JWT
   createSendToken(user, 200, res);
 });
+
+//For render pages (to check if the user is logged in and conditionally render some stuff)
+exports.isLoggedIn = catchAsync(async (req, res, next) => {
+  //The request contains the cookies and inside that we may have the auth jwt token
+  //1) Check if there is a token
+  if (req.cookies.jwt) {
+    //2) Verification: Valdiate token (JWT checks if signature is valid or not)
+    const decoded = await promisify(jwt.verify)(
+      req.cookies.jwt,
+      process.env.JWT_SECRET,
+    );
+
+    //3) Check if user still exists
+    const crrUser = await User.findById(decoded.id);
+    if (!crrUser) {
+      return next();
+    }
+
+    //4) Check if user changed token after the JWT was issued
+    if (crrUser.changedPasswordAfter(decoded.iat)) {
+      return next();
+    }
+
+    //There is a logged in user
+    //The pug template will have access to this variable
+    res.locals.user = crrUser;
+    return next();
+  }
+  next();
+});
+
+exports.logout = (req, res) => {
+  //We overwrite the cookie containing the token and we dont send the token as in the login
+  res.cookie('jwt', 'null', {
+    expires: new Date(Date.now() - 10 * 1000),
+    httpOnly: true,
+  }); //So now the cookie is expire and null => The user is not authenticated and we can login again
+
+  res.status(200).json({
+    status: 'success',
+  });
+};
