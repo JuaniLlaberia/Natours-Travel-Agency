@@ -67,6 +67,9 @@ app.use(
   }),
 ); //the app.use adds the middleware to the app
 
+//To parse encoded data from an url and now we can receive it in the body :D
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
 //Parses data from cookies
 app.use(cookieParser());
 
