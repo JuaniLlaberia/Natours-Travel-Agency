@@ -9,6 +9,7 @@ const router = express.Router();
 //The signup endpoint is to create user or guide accounts(as it doesnt need auth) NOT LEAD OR ADMIN
 router.post('/signup', authenticationController.signup);
 router.post('/login', authenticationController.login);
+router.get('/logout', authenticationController.logout);
 router.post('/forgotPassword', authenticationController.forgotPassword);
 router.patch('/resetPassword/:token', authenticationController.resetPassword);
 
