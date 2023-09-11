@@ -1,7 +1,70 @@
+const multer = require('multer');
+const sharp = require('sharp');
 const Tour = require('../models/tourModel');
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const factory = require('./handlerFactory');
+
+const multerStorage = multer.memoryStorage();
+
+const multerFilter = (req, file, cb) => {
+  //Check if the file is an image or not
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true); //The null means no error
+  } else {
+    cb(new AppError('Not an image. Please upload an image', 400), false);
+  }
+};
+
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter,
+});
+
+//Uploading multiple files
+exports.uploadTourImages = upload.fields([
+  { name: 'imageCover', maxCount: 1 },
+  { name: 'images', maxCount: 3 },
+]);
+
+//If we would have had just one type of multiple files we could have done this
+//upload.array('images', 3) => req.files
+//And when its just 1 file
+//upload.single('image') => req.file
+
+//Proccess images
+exports.resizeTourImages = catchAsync(async (req, res, next) => {
+  if (!req.files.imageCover || !req.files.images) return next();
+
+  //1) proccessing cover image
+  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+  await sharp(req.files.imageCover[0].buffer)
+    .resize(2000, 1333) //resize image (pixels)
+    .toFormat('jpeg') //Select format
+    .jpeg({ quality: 90 }) //modify quality
+    //This writes the file to the provided place => LEARN HOW TO DO IT TO A CLOUD SERVICE (Not to store it locally)
+    .toFile(`public/img/tours/${req.body.imageCover}`);
+
+  //2) Images
+  //The map returns an array of promises after all the images are proccessed and we await those promises, and after taht we store them
+  //else we would have an empty array
+  await Promise.all(
+    req.files.images.map(async (file, index) => {
+      req.body.images = [];
+      const filename = `tour-${req.params.id}-${Date.now()}-${index + 1}.jpeg`;
+
+      await sharp(file.buffer)
+        .resize(2000, 1333)
+        .toFormat('jpeg')
+        .jpeg({ quality: 90 })
+        .toFile(`public/img/tours/${filename}`);
+
+      req.body.images.push(filename);
+    }),
+  );
+
+  next();
+});
 
 //Creating a middleware to modify the query object, so when it reaces the 'getAllTours' its different.
 exports.aliasTopTours = (req, res, next) => {

@@ -1,7 +1,7 @@
 const express = require('express');
 const tourController = require('../controllers/tourController');
 const authenticationController = require('../controllers/authenticationController');
-const reviewRouter = require('../routes/reviewRoutes');
+const reviewRouter = require('./reviewRoutes');
 
 //Create a new router -> We are creating a 'sub-app' for each resource
 //Creating Router
@@ -67,6 +67,8 @@ router
   .patch(
     authenticationController.protect,
     authenticationController.restrictTo('admin', 'lead-guide'),
+    tourController.uploadTourImages,
+    tourController.resizeTourImages,
     tourController.updateTour,
   )
   .delete(
