@@ -4,12 +4,14 @@ import 'regenerator-runtime';
 
 import { login, logout } from './login';
 import { updateSettings } from './updateSettings';
+import { bookTour } from './stripe';
 
 //DOM ELEMENTS
 const loginForm = document.querySelector('.form--login');
 const updateSettingsUserForm = document.querySelector('.form-user-data');
 const updatePasswordUserForm = document.querySelector('.form-user-password');
 const logoutBtn = document.querySelector('.nav__el--logout');
+const bookBtn = document.getElementById('book-tour');
 
 //DELEGATION
 if (loginForm) {
@@ -40,8 +42,6 @@ if (updateSettingsUserForm) {
     form.append('email', document.getElementById('email').value);
     form.append('photo', document.getElementById('photo').files[0]);
 
-    console.log(form);
-
     updateSettings(form, 'data');
   });
 }
@@ -64,5 +64,13 @@ if (updatePasswordUserForm) {
     document.getElementById('password-current').value = '';
     document.getElementById('password').value = '';
     document.getElementById('password-confirm').value = '';
+  });
+}
+
+if (bookBtn) {
+  bookBtn.addEventListener('click', (e) => {
+    e.target.textContent = 'Processing...';
+    const { tourId } = e.target.dataset;
+    bookTour(tourId);
   });
 }
