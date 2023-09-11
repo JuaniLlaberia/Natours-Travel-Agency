@@ -107,7 +107,6 @@ app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
 
   //HTTP HEADERS
-  console.log(req.cookies);
   next();
 });
 
