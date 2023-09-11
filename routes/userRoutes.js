@@ -1,4 +1,5 @@
 const express = require('express');
+
 const userController = require('../controllers/userController');
 const authenticationController = require('../controllers/authenticationController');
 
@@ -22,7 +23,12 @@ router.get('/me', userController.getMe, userController.getUser);
 
 router.patch('/updateMyPassword', authenticationController.updatePassword);
 
-router.patch('/updateMe', userController.updateMe);
+router.patch(
+  '/updateMe',
+  userController.updateUserPhoto,
+  userController.resizeUserPhoto,
+  userController.updateMe,
+);
 
 router.delete('/deleteMe', userController.deleteMe);
 
