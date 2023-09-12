@@ -6,6 +6,7 @@
   "targets": {
     "main": false
   },
+  "browserslist": "> 0.5%, last 2 versions, not dead",
   "scripts": {
     "debug": "ndb server.js",
     "watch:js": "parcel watch ./public/js/index.js --dist-dir ./public/js/bundled",
