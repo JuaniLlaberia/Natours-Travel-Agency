@@ -9,6 +9,7 @@ const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
+const cors = require('cors');
 
 const AppError = require('./utils/appError');
 const tourRouter = require('./routes/tourRoutes');
@@ -26,6 +27,21 @@ app.set('view engine', 'pug'); // ==> Pug templates are call views
 app.set('views', path.join(__dirname, 'views'));
 
 //GLOBAL MIDDLEWARES
+//SECURITY
+//CORS occure when different websites or domanins try to acces our api (for example fetch) => By default those request are block
+app.use(cors()); //This works for simple request (get, post) (below we allow complex requests)
+//It sets headers
+//Like this everyone will be able to fetch our api (then they will need the auth but they can do the request anyway)
+
+//But sometimes you want to block access to everyone expect from your front end app (back and front hosted separatly)
+// app.use(cors({
+//   origin: 'FRONT END URL' //Just this url would be able to access
+// }))
+
+//This allows complex request (patch, delete, etc)
+app.options('*', cors()); //First the path and then cors (we can do it in specific routes)
+// app.options('/api/v1/tours/:id', cors());
+
 //Serve statis files with Express (use the path in the url without the public) -> from a folder not a route
 app.use(express.static(path.join(__dirname, 'public')));
 
