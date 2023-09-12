@@ -29,7 +29,11 @@ exports.getCheckoutSession = catchAsync(async (req, res, next) => {
           currency: 'usd',
           product_data: {
             name: `${tour.name} Tour`,
-            images: [`https://www.natours.dev/img/tours/${tour.imageCover}`],
+            images: [
+              `${req.protocol}://${req.get('host')}/img/tours/${
+                tour.imageCover
+              }`,
+            ],
             description: tour.summary,
           },
         },
@@ -61,13 +65,13 @@ const createBookingCheckout = catchAsync(async (session) => {
   //The data is stored in the session
   const tour = session.client_reference_id;
   const user = (await User.findOne({ email: session.customer_email })).id;
-  const price = session.line_items[0].amount / 100;
+  const price = session.amount_total / 100;
 
   await Booking.create({ tour, user, price });
 });
 
 //THIS WIILL RUN WHENEVER A PAYMENT WAS SUCCESSFULL
-exports.webhookCheckout = (req, res, next) => {
+exports.webhookCheckout = async (req, res, next) => {
   //1) Read STRIPE SIGNATURE
   const signature = req.headers['stripe-signature'];
   //2) Create stripe event (All of this to validate the data that comes in the body (SECURE))
@@ -83,8 +87,8 @@ exports.webhookCheckout = (req, res, next) => {
   }
 
   //Check if the event is the one we need
-  if (event.type === 'checkout.session.complete')
-    createBookingCheckout(event.data.object); //We pass the session we create at the beggining of the checkout process
+  if (event.type === 'checkout.session.completed')
+    await createBookingCheckout(event.data.object); //We pass the session we create at the beggining of the checkout process
 
   res.status(200).json({ received: true });
 };
