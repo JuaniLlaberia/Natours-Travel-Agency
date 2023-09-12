@@ -18,6 +18,7 @@ const reviewRouter = require('./routes/reviewRoutes');
 const bookingRouter = require('./routes/bookingRoutes');
 const viewRouter = require('./routes/viewRoute');
 const globalErrorHandler = require('./controllers/errorController');
+const bookingController = require('./controllers/bookingController');
 
 //APP CONFIGURATION (Server on separate file)
 const app = express();
@@ -75,6 +76,15 @@ const limiter = rateLimit({
 });
 //Will only affect all routes that start with the /api
 app.use('/api', limiter);
+
+//STRIPE WEBHOOK
+//Needs to be here, and not inside of another route, because we need the body data in RAW format
+//And then when we use the middleware json from express, the body will be transform (so we need it to call it before)
+app.post(
+  '/webhook-checkout',
+  express.raw({ type: 'application/json' }), //RAW BODY
+  bookingController.webhookCheckout,
+);
 
 //Body parser => reading data from body into req.body
 //Middleware -> can modify the incomming data (between the request and the response) In thois case we add the request data to the body

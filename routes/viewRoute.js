@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get(
   '/',
-  bookingController.createBookingCheckout, //TEMPORARY (UNTIL WE HAVE WEBHOOKS)
+  // bookingController.createBookingCheckout, //TEMPORARY (UNTIL WE HAVE WEBHOOKS)
   authenticationController.isLoggedIn,
   viewController.getOverview,
 );
