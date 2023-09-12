@@ -8,6 +8,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
 const cookieParser = require('cookie-parser');
+const compression = require('compression');
 
 const AppError = require('./utils/appError');
 const tourRouter = require('./routes/tourRoutes');
@@ -102,6 +103,9 @@ app.use(
 //And in the case they send two === parameters, it will only use the second one
 //AVOID THIS: url?sort=x&sort=y -> it should be together and not in two separate (hackers could use this to their advantage)
 //But sometimes we do want to be able to hable duplicates (We use whitelist)
+
+//Middleware to compress text send to client (to make the app more efficient by reducing the sizes)
+app.use(compression());
 
 //custom middleware -> If we dont set the route, they apply for every single route/request (if its before the route)
 app.use((req, res, next) => {

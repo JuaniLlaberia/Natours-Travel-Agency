@@ -26,7 +26,6 @@ const importData = async () => {
     await Tour.create(tours);
     await User.create(users, { validateBeforeSave: false });
     await Review.create(reviews);
-    console.log('All data loaded from local to the DB');
     process.exit();
   } catch (err) {
     console.log(err);
@@ -39,7 +38,6 @@ const deleteData = async () => {
     await Tour.deleteMany();
     await User.deleteMany();
     await Review.deleteMany();
-    console.log('Data deleted!');
     process.exit();
   } catch (err) {
     console.log(err);

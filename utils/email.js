@@ -64,7 +64,6 @@ module.exports = class Email {
     //3) Create a transport and send the email
     await this.newTransport().sendMail(mailOptions);
     //await transporter.sendMail(mailOptions);
-    console.log('Email sent');
   }
 
   //Selecting the 'type' we want to send

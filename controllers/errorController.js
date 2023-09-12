@@ -64,7 +64,6 @@ const sendErrorProd = (err, req, res) => {
   //RENDERED WEBSITE
   //A) Operational
   if (err.isOperational) {
-    console.log(err);
     return res.status(err.statusCode).render('error', {
       title: 'Something went wrong!',
       msg: err.message,

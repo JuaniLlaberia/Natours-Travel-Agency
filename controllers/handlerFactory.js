@@ -35,8 +35,6 @@ exports.deleteOne = (Model) =>
 exports.updateOne = (Model, updateFields) =>
   catchAsync(async (req, res, next) => {
     //Filtering unwanted fields to update
-    console.log(req.body);
-
     let filteredBody;
 
     if (updateFields) {
@@ -44,8 +42,6 @@ exports.updateOne = (Model, updateFields) =>
     } else {
       filteredBody = req.body;
     }
-
-    console.log(filteredBody);
 
     const doc = await Model.findByIdAndUpdate(req.params.id, filteredBody, {
       new: true, //Returns the updated doc
