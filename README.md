@@ -5,11 +5,14 @@ In addition we used server-side rendering for the UI using PUG templates as an a
 
 Also Stripe has been implemented in TEST mode in order to emulate how it would work in the real application.
 
-## Live Demo (Hosted in Render.com) (It may take one or two minutes to start the server ones you enter, I'm using the free plan)
+## Live Demo (Hosted in Render.com)
+(It may take one or two minutes to start the server ones you enter, I'm using the free plan)
+
 [Natours Travel Agency](https://natours-course-l264.onrender.com/)
 
-Test user:
+## Test user
 -Username: isabel@example.com
+
 -Password: test1234
 
 ## Technologies used:
@@ -21,11 +24,13 @@ Test user:
 ![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
 ![PUG](https://img.shields.io/badge/Pug-E3C29B?style=for-the-badge&logo=pug&logoColor=black)
 
-Tools
+Extra Tools
+
 ![Render.com](https://img.shields.io/badge/Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=Postman&logoColor=white)
 
 
 ## Credits
 Coded by [@JuaniLlaberia](https://github.com/JuaniLlaberia).
+
 Course by [@jonasschmedtmann](https://github.com/jonasschmedtmann)
